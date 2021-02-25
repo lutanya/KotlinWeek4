@@ -2,25 +2,27 @@ package board
 
 import board.Direction.*
 
-fun createSquareBoard(width: Int): SquareBoard =object: SquareBoard {
-    override val width: Int= width
-    val cells: List<Cell> = List(width*width){it}.map{Cell(it/width + 1, it % width + 1)}
+fun createSquareBoard(width: Int): SquareBoard = object : SquareBoard {
+    override val width: Int = width
+    val cells: List<Cell> = List(width * width) { it }.map { Cell(it / width + 1, it % width + 1) }
 
-    override fun getCellOrNull(i: Int, j: Int): Cell?{
-        return if(i>width || j>width) null else cells[(i-1)*width+j-1]
-    }
-    override fun getCell(i: Int, j: Int): Cell{
-        return if(i>width || j>width) throw IllegalArgumentException() else cells[(i-1)*width+j-1]
+    override fun getCellOrNull(i: Int, j: Int): Cell? {
+        return if (i > width || j > width) null else cells[(i - 1) * width + j - 1]
     }
 
-    override fun getAllCells(): Collection<Cell>{
+    override fun getCell(i: Int, j: Int): Cell {
+        return if (i > width || j > width) throw IllegalArgumentException() else cells[(i - 1) * width + j - 1]
+    }
+
+    override fun getAllCells(): Collection<Cell> {
         return cells
     }
 
-    override fun getRow(i: Int, jRange: IntProgression): List<Cell>{
+    override fun getRow(i: Int, jRange: IntProgression): List<Cell> {
         val triple = triple(jRange)
-        val row = cells.filterIndexed { index, _ -> index in ((i-1)*width+triple.second-1) until (i-1)*width+triple.third }
-        return if(triple.first) row.reversed() else row
+        val row =
+            cells.filterIndexed { index, _ -> index in ((i - 1) * width + triple.second - 1) until (i - 1) * width + triple.third }
+        return if (triple.first) row.reversed() else row
 
     }
 
@@ -32,22 +34,45 @@ fun createSquareBoard(width: Int): SquareBoard =object: SquareBoard {
         return Triple(isReversed, first, last)
     }
 
-    override fun getColumn(iRange: IntProgression, j: Int): List<Cell>{
+    override fun getColumn(iRange: IntProgression, j: Int): List<Cell> {
         val triple = triple(iRange)
-        val row = cells.filterIndexed { index, _ -> index in ((triple.second-1)*width+j-1) until (triple.third-1)*width+j && index % width ==((triple.second-1)*width+j-1) % width}
-        return if(triple.first) row.reversed() else row
+        val row =
+            cells.filterIndexed { index, _ -> index in ((triple.second - 1) * width + j - 1) until (triple.third - 1) * width + j && index % width == ((triple.second - 1) * width + j - 1) % width }
+        return if (triple.first) row.reversed() else row
     }
 
-    override fun Cell.getNeighbour(direction: Direction): Cell?{
-        return when(direction){
-            UP->if(((this.i-1)*width+this.j-1-width)>=0) cells[(this.i-1)*width+this.j-1-width] else null
-            LEFT->if((this.i-1)*width+this.j-2>=0) cells[(this.i-1)*width+this.j-2] else null
-            DOWN->if((this.i-1)*width+this.j-1+width<width*width) cells[(this.i-1)*width+this.j-1+width] else null
-            RIGHT->if((this.i-1)*width+this.j<width*width) cells[(this.i-1)*width+this.j] else null
+    override fun Cell.getNeighbour(direction: Direction): Cell? {
+        return when (direction) {
+            UP -> if (((this.i - 1) * width + this.j - 1 - width) >= 0) cells[(this.i - 1) * width + this.j - 1 - width] else null
+            LEFT -> if ((this.i - 1) * width + this.j - 2 >= 0) cells[(this.i - 1) * width + this.j - 2] else null
+            DOWN -> if ((this.i - 1) * width + this.j - 1 + width < width * width) cells[(this.i - 1) * width + this.j - 1 + width] else null
+            RIGHT -> if ((this.i - 1) * width + this.j < width * width) cells[(this.i - 1) * width + this.j] else null
         }
     }
 }
 
 
-fun <T> createGameBoard(width: Int): GameBoard<T> = TODO()
+fun <T> createGameBoard(width: Int): GameBoard<T> = object : GameBoard<T>, SquareBoard by createSquareBoard(width){
+    var board: HashMap<Cell, T?> = object : HashMap<Cell, T?>() {
+        init {
+            for (cell in getAllCells())
+                put(cell, null)
+        }
+    }
+
+    override fun get(cell: Cell): T? = board[cell]
+
+    override fun set(cell: Cell, value: T?) {
+        board[cell] = value
+    }
+
+    override fun filter(predicate: (T?) -> Boolean): Collection<Cell> = board.filterValues(predicate).keys.toList()
+
+
+    override fun find(predicate: (T?) -> Boolean): Cell? = filter(predicate).first()
+
+    override fun any(predicate: (T?) -> Boolean): Boolean = board.values.any(predicate)
+
+    override fun all(predicate: (T?) -> Boolean): Boolean = board.values.all(predicate)
+}
 
